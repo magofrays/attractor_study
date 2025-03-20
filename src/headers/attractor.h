@@ -31,6 +31,7 @@ struct Attractor
     vec3 midpoint_method(double h);
     vec3 rk4_method(double h);
     vec3 backward_euler_method(double h);
+    vec3 trapezoid_method(double h);
     void find_next_point();
 
     void draw_big_point(size_t size, int x, int y);
