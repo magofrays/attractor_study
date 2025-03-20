@@ -8,6 +8,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cctype>
+#include "matrix3x3.h"
 
 struct Attractor
 {
@@ -29,8 +30,9 @@ struct Attractor
     vec3 euler_method(double h);
     vec3 midpoint_method(double h);
     vec3 rk4_method(double h);
+    vec3 backward_euler_method(double h);
     void find_next_point();
-    
+
     void draw_big_point(size_t size, int x, int y);
     void resize_point(vec3 &point, double k);
     void move_point(vec3 &point, vec3 position);

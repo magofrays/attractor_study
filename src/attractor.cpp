@@ -3,11 +3,7 @@
 Attractor::Attractor() : centroid(0, 0, 0), pos(.5, .5, .5)
 {
     SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("Attractor",
-                              SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED,
-                              width, height,
-                              SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("Attractor", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -52,14 +48,14 @@ vec3 Attractor::vec_function(vec3 point)
 vec3 Attractor::euler_method(double h)
 {
     vec3 k1 = vec_function(pos);
-    return k1 * h;
+    return pos + k1 * h;
 }
 
 vec3 Attractor::midpoint_method(double h)
 {
     vec3 k1 = vec_function(pos);
     vec3 k2 = vec_function(pos + k1 * (h * 0.5));
-    return k2 * h;
+    return pos + k2 * h;
 }
 
 vec3 Attractor::rk4_method(double h)
@@ -68,12 +64,47 @@ vec3 Attractor::rk4_method(double h)
     vec3 k2 = vec_function(pos + k1 * (h * 0.5f));
     vec3 k3 = vec_function(pos + k2 * (h * 0.5f));
     vec3 k4 = vec_function(pos + k3 * h);
-    return (k1 * 0.16667f + k2 * 0.33333f + k3 * 0.33333f + k4 * 0.16667f) * h;
+    return pos + (k1 * 0.16667f + k2 * 0.33333f + k3 * 0.33333f + k4 * 0.16667f) * h;
+}
+
+vec3 Attractor::backward_euler_method(double h)
+{
+    // x(x0+h) = x(h) * f(x(x0 + h)*h)
+    // d(x+h) = dx + ((d(z+h) - b)*d(x+h) - d * d(y+h))*h
+    // d(y+h) = dy + (d*d(x+h) + (d(z+h) - b) * d(y+h))*h
+    // d(z+h) = dz + (c + a*d(z+h) - d(z+h)^3 * 0.3333f  - (d(x+h)^2 + d(y+h)^2)*(1 + e*d(z+h)) + f*d(z+h)*d(x+h)^3)*h
+    vec3 point_n = pos;
+    vec3 point = point_n + vec_function(point_n) * h; // euler method for first
+    double tol = 1e-6;
+    int maxIter = 50;
+    for (int iter = 0; iter < maxIter; iter++)
+    {
+        vec3 F = point - point_n - vec_function(point) * h;
+        if (F.distance() < tol)
+        {
+            break;
+        }
+        Matrix3x3 J;
+        // F gradients
+        J[0][0] = 1 - h * (point.z - b);
+        J[0][1] = h * d;
+        J[0][2] = -h * point.x;
+        J[1][0] = -h * d;
+        J[1][1] = 1 - h * (point.z - b);
+        J[1][2] = -h * point.y;
+        J[2][0] = 2 * point.x * (1 + e * point.z) * h;
+        J[2][1] = h * 2 * point.y * (1 + e * point.z);
+        J[2][2] = 1 + h * e * (point.x * point.x + point.y * point.y) - a * h + point.z * point.z * h - f * h * point.x * point.x * point.x;
+        Matrix3x3 invJ = J.find_inverse();
+        point = point - invJ * F;
+    }
+
+    return point;
 }
 
 void Attractor::find_next_point()
 {
-    pos = pos + rk4_method(dt);
+    pos = backward_euler_method(dt);
 }
 void Attractor::create_attractor(int count, int skip_count)
 {

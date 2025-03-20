@@ -23,6 +23,20 @@ struct vec3
         z += point.z;
         return *this;
     }
+
+    vec3 operator-(const vec3 &point) const
+    {
+        return vec3(x - point.x, y - point.y, z - point.z);
+    }
+
+    vec3 &operator-=(const vec3 &point)
+    {
+        x -= point.x;
+        y -= point.y;
+        z -= point.z;
+        return *this;
+    }
+
     vec3 operator*(double scalar) const
     {
         return vec3(x * scalar, y * scalar, z * scalar);
