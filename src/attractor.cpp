@@ -45,12 +45,6 @@ vec3 Attractor::vec_function(vec3 point)
     return {dx, dy, dz};
 }
 
-vec3 Attractor::euler_method(double h)
-{
-    vec3 k1 = vec_function(pos);
-    return pos + k1 * h;
-}
-
 vec3 Attractor::midpoint_method(double h)
 {
     vec3 k1 = vec_function(pos);
@@ -67,13 +61,36 @@ vec3 Attractor::rk4_method(double h)
     return pos + (k1 * 0.16667f + k2 * 0.33333f + k3 * 0.33333f + k4 * 0.16667f) * h;
 }
 
-vec3 Attractor::backward_euler_method(double h)
+Matrix3x3 Attractor::create_jacobian(vec3 &point, double h)
+{
+    Matrix3x3 J;
+    J[0][0] = 1 - h * (point.z - b);
+    J[0][1] = h * d;
+    J[0][2] = -h * (point.x);
+    J[1][0] = -h * d;
+    J[1][1] = 1 - h * (point.z - b);
+    J[1][2] = -h * point.y;
+    J[2][0] = 2 * (point.x) * (1 + e * point.z) * h;
+    J[2][1] = h * 2 * (point.y) * (1 + e * point.z);
+    J[2][2] = 1 + h * e * (pow(point.x, 2) + pow(point.y, 2)) -
+              a * h + pow(point.z, 2) * h - f * h * pow(point.x, 3);
+    return J;
+}
+
+vec3 Attractor::euler_method(double h)
+{
+    vec3 k1 = vec_function(pos);
+    return pos + k1 * h;
+}
+
+vec3 Attractor::backward_euler_method(vec3 &predicted_point, double h)
 {
     // x(x0+h) = x(h) * f(x(x0 + h))*h
     // d(x+h) = dx + ((d(z+h) - b)*d(x+h) - d * d(y+h))*h
     // d(y+h) = dy + (d*d(x+h) + (d(z+h) - b) * d(y+h))*h
     // d(z+h) = dz + (c + a*d(z+h) - d(z+h)^3 * 0.3333f  - (d(x+h)^2 + d(y+h)^2)*(1 + e*d(z+h)) + f*d(z+h)*d(x+h)^3)*h
-    vec3 k1 = vec_function(pos); // euler method for first k1 = vec_function(pos + h*k1)
+    // euler method for first k1 = vec_function(pos + h*k1)
+    vec3 k1 = vec_function(predicted_point);
     double tol = 1e-6;
     int maxIter = 50;
     for (int iter = 0; iter < maxIter; iter++)
@@ -83,17 +100,8 @@ vec3 Attractor::backward_euler_method(double h)
         {
             break;
         }
-        Matrix3x3 J;
-        // F gradients
-        J[0][0] = 1 - h * (k1.z - b);
-        J[0][1] = h * d;
-        J[0][2] = -h * k1.x;
-        J[1][0] = -h * d;
-        J[1][1] = 1 - h * (k1.z - b);
-        J[1][2] = -h * k1.y;
-        J[2][0] = 2 * k1.x * (1 + e * k1.z) * h;
-        J[2][1] = h * 2 * k1.y * (1 + e * k1.z);
-        J[2][2] = 1 + h * e * (k1.x * k1.x + k1.y * k1.y) - a * h + k1.z * k1.z * h - f * h * k1.x * k1.x * k1.x;
+        vec3 point = pos + k1 * h;
+        Matrix3x3 J = create_jacobian(point, h);
         Matrix3x3 invJ = J.find_inverse();
         k1 = k1 - invJ * F;
     }
@@ -101,11 +109,18 @@ vec3 Attractor::backward_euler_method(double h)
     return pos + k1 * h;
 }
 
-vec3 Attractor::trapezoid_method(double h)
+vec3 Attractor::trapezoid_method_predictor(double h)
+{
+    vec3 k1 = vec_function(pos);
+    return pos + k1 * h * 0.5;
+}
+
+vec3 Attractor::trapezoid_method(vec3 &predicted_point, double h)
 {
     vec3 k1 = vec_function(pos);
     // k2 = vec_function(pos + (k1 + k2) * 0.5 * h)
-    vec3 k2 = vec_function(pos + k1 * h * 0.5); // without k2 to approximate it
+    // vec3 k2 = vec_function(pos + k1 * h * 0.5); // without k2 to approximate it
+    vec3 k2 = vec_function(predicted_point);
     double tol = 1e-6;
     int maxIter = 50;
     for (int iter = 0; iter < maxIter; iter++)
@@ -115,18 +130,8 @@ vec3 Attractor::trapezoid_method(double h)
         {
             break;
         }
-        Matrix3x3 J;
-        J[0][0] = 1 - 0.5 * h * (pos.z + 0.5 * h * (k1.z + k2.z) - b);
-        J[0][1] = d * h * 0.5;
-        J[0][2] = -h * 0.5 * (pos.x + 0.5 * h * (k1.x + k2.x));
-        J[1][0] = -d * h * 0.5;
-        J[1][1] = 1 - 0.5 * h * (pos.z + 0.5 * h * (k1.z + k2.z) - b);
-        J[1][2] = -h * 0.5 * (pos.y + 0.5 * h * (k1.y + k2.y));
-        J[2][0] = (1 + e * h * 0.5 * (pos.z + 0.5 * h * (k1.z + k2.z))) * h * (pos.x + 0.5 * h * (k1.x + k2.x)) -
-                  1.5 * h * pow(pos.x + 0.5 * h * (k1.x + k2.x), 2) * (pos.z + 0.5 * h * (k1.z + k2.z));
-        J[2][1] = (pos.y + 0.5 * h * (k1.y + k2.y)) * h * (1 + e * (pos.z + 0.5 * h * (k1.z + k2.z)));
-        J[2][2] = 1 + e * 0.5 * h * (pow(pos.x + 0.5 * h * (k1.x + k2.x), 2) + pow(pos.y + 0.5 * h * (k1.y + k2.y), 2)) -
-                  f * 0.5 * h * pow(pos.x + 0.5 * h * (k1.x + k2.x), 3) - a * 0.5 * h + 0.5 * h * pow(pos.x + 0.5 * h * (k1.x + k2.x), 2);
+        vec3 point = pos + (k1 + k2) * 0.5 * h;
+        Matrix3x3 J = create_jacobian(point, h);
         Matrix3x3 invJ = J.find_inverse();
         k2 = k2 - invJ * F;
     } // approximating with Newton
@@ -134,9 +139,21 @@ vec3 Attractor::trapezoid_method(double h)
     return pos + (k1 + k2) * h * 0.5;
 }
 
+vec3 Attractor::predictor_corrector_method(
+    double h,
+    vec3 (Attractor::*predictor)(double),
+    vec3 (Attractor::*corrector)(vec3 &, double))
+{
+    vec3 predicted_point = (this->*predictor)(h);
+    return (this->*corrector)(predicted_point, h);
+}
+
 void Attractor::find_next_point()
 {
-    pos = trapezoid_method(dt);
+    pos = predictor_corrector_method(
+        dt,
+        &Attractor::rk4_method,
+        &Attractor::trapezoid_method);
 }
 void Attractor::create_attractor(int count, int skip_count)
 {
@@ -201,7 +218,6 @@ void Attractor::find_centroid()
 
 void Attractor::rotate_point(vec3 &point, float xAngle, float yAngle, float zAngle)
 {
-
     float xRad = xAngle * rad;
     float yRad = yAngle * rad;
     float zRad = zAngle * rad;
