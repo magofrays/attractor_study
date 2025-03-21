@@ -1,6 +1,6 @@
 #include "headers/attractor.h"
 
-Attractor::Attractor() : centroid(0, 0, 0), pos(.5, .5, .5)
+Attractor::Attractor(std::string method_name) : centroid(0, 0, 0), pos(.5, .5, .5)
 {
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Attractor", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
@@ -9,32 +9,47 @@ Attractor::Attractor() : centroid(0, 0, 0), pos(.5, .5, .5)
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
+    set_method(method_name);
 }
 
-double Attractor::find_min_point()
+void Attractor::set_method(std::string method_name)
 {
-    double min_point = vertices[0].distance();
-    for (auto &point : vertices)
+    if (method_name == "euler")
     {
-        if (point.distance() < min_point)
-        {
-            min_point = point.distance();
-        }
+        method = &Attractor::euler_method;
     }
-    return min_point;
+    else if (method_name == "midpoint")
+    {
+        method = &Attractor::midpoint_method;
+    }
+    else if (method_name == "rk4")
+    {
+        method = &Attractor::rk4_method;
+    }
+    else if (method_name == "dopri8")
+    {
+        method = &Attractor::dopri8_method;
+    }
+    else if (method_name == "pred_corr")
+    {
+        method = &Attractor::predictor_corrector_method;
+    }
+    else if (method_name == "backward_euler")
+    {
+        method = &Attractor::backward_euler_method;
+    }
+    else if (method_name == "trapezoid")
+    {
+        method = &Attractor::trapezoid_method;
+    }
+    else
+    {
+        throw std::invalid_argument("Unknown method name: " + method_name);
+    }
 }
-
-double Attractor::find_max_point()
+void Attractor::set_step(double h)
 {
-    double max_point = vertices[0].distance();
-    for (auto &point : vertices)
-    {
-        if (point.distance() > max_point)
-        {
-            max_point = point.distance();
-        }
-    }
-    return max_point;
+    dt = h;
 }
 
 vec3 Attractor::vec_function(vec3 point)
@@ -117,9 +132,9 @@ vec3 Attractor::euler_method(double h)
     return pos + k1 * h;
 }
 
-vec3 Attractor::backward_euler_method(const vec3 &predicted_point, double h)
+vec3 Attractor::backward_euler_corrector(const vec3 &predicted_point, double h)
 {
-    // euler method for first k1 = vec_function(pos + h*k1)
+    // k1 = vec_function(pos + h*k1)
     vec3 k1 = vec_function(predicted_point);
     double tol = 1e-6;
     int maxIter = 50;
@@ -139,13 +154,13 @@ vec3 Attractor::backward_euler_method(const vec3 &predicted_point, double h)
     return pos + k1 * h;
 }
 
-vec3 Attractor::trapezoid_method_predictor(double h)
+vec3 Attractor::trapezoid_predictor(double h)
 {
     vec3 k1 = vec_function(pos);
     return pos + k1 * h * 0.5;
 }
 
-vec3 Attractor::trapezoid_method(const vec3 &predicted_point, double h)
+vec3 Attractor::trapezoid_corrector(const vec3 &predicted_point, double h)
 {
     vec3 k1 = vec_function(pos);
     // k2 = vec_function(pos + (k1 + k2) * 0.5 * h)
@@ -168,7 +183,7 @@ vec3 Attractor::trapezoid_method(const vec3 &predicted_point, double h)
     return pos + (k1 + k2) * h * 0.5;
 }
 
-vec3 Attractor::predictor_corrector_method(
+vec3 Attractor::predictor_corrector(
     double h,
     vec3 (Attractor::*predictor)(double),
     vec3 (Attractor::*corrector)(const vec3 &, double))
@@ -177,13 +192,24 @@ vec3 Attractor::predictor_corrector_method(
     return (this->*corrector)(predicted_point, h);
 }
 
+vec3 Attractor::backward_euler_method(double h)
+{
+    return predictor_corrector(h, &Attractor::euler_method, &Attractor::backward_euler_corrector);
+}
+
+vec3 Attractor::trapezoid_method(double h)
+{
+    return predictor_corrector(h, &Attractor::trapezoid_predictor, &Attractor::trapezoid_corrector);
+}
+
+vec3 Attractor::predictor_corrector_method(double h)
+{
+    return predictor_corrector(h, &Attractor::euler_method, &Attractor::trapezoid_corrector);
+}
+
 void Attractor::find_next_point()
 {
-    pos = predictor_corrector_method(
-        dt,
-        &Attractor::dopri8_method,
-        &Attractor::trapezoid_method);
-    // pos = dopri8(dt);
+    pos = (this->*method)(dt);
 }
 
 void Attractor::create_attractor(int count, int skip_count)

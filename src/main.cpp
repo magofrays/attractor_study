@@ -1,4 +1,5 @@
 #include "headers/attractor.h"
+#include "headers/test_methods.h"
 #include <string>
 
 bool str_is_digit(std::string str)
@@ -15,8 +16,14 @@ bool str_is_digit(std::string str)
 
 int main(int argc, char **argv)
 {
+    if (argv[1] == "-t")
+    {
+        methodTester mt;
+
+        return 0;
+    }
     bool draw_lines = false;
-    bool draw_dots = false;
+    bool draw_dots = true;
     bool animation = false;
     int point_count = 100000;
     for (int i = 1; i < argc; i++)
@@ -42,8 +49,8 @@ int main(int argc, char **argv)
             std::cout << "some commands seem strange\n";
         }
     }
-    Attractor atr;
-    atr.create_attractor(point_count * 10, 10);
+    Attractor atr("rk4");
+    atr.create_attractor(point_count, 1);
     atr.draw_attractor(draw_lines, draw_dots, animation, point_count);
     return 0;
 }
