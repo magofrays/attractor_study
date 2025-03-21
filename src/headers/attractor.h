@@ -13,12 +13,13 @@
 
 struct Attractor
 {
-    double dt = 1;
+    double dt = 0.001;
     double a = .95, b = .7, c = .6, d = 3.5, e = .25, f = .1;
     vec3 pos;
     int height = 1000;
     int width = 1000;
     float rad = (M_PI / 180.0f);
+    bool gui;
     SDL_Window *window;
     SDL_Renderer *renderer;
     std::vector<vec3> vertices;
@@ -32,8 +33,8 @@ struct Attractor
         "backward_euler",
         "trapezoid"};
     vec3 (Attractor::*method)(double);
-    Attractor(std::string method_name = "dopri8");
-
+    Attractor(std::string method_name = "dopri8", bool gui = true);
+    void start_gui();
     // instruments for methods
     void set_method(std::string method_name);
     void set_step(double h);

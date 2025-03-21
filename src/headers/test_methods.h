@@ -5,6 +5,7 @@ using json = nlohmann::json;
 
 struct methodTester
 {
+
     std::vector<Attractor> attractors;
     std::vector<std::string> method_names = {
         "euler",
@@ -23,14 +24,16 @@ struct methodTester
     double step_end = 0.2;
     double step_start = 0.001;
     double step_step = 0.001; // step for step
-
+    double ideal_step = 0.01;
+    int mul_step = (double(1) / step_step);
     // settings for method tester
-    double dipazone_for_count = 0.1;
+    double dipazone_for_count = 0.01;
 
     methodTester();
-    void test_steps();
+    int gcd(int a, int b);
+    void steps_test();
     void test_methods_difference();
-    std::map<double, int> count_points_same_dipazone(std::vector<double> &distances);
+    std::vector<int> count_points_same_dipazone(std::vector<double> &distances);
 
     void save_test_methods();
     void save_test_steps();

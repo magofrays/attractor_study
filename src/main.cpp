@@ -16,10 +16,13 @@ bool str_is_digit(std::string str)
 
 int main(int argc, char **argv)
 {
-    if (argv[1] == "-t")
+    if (argc > 1 && strcmp(argv[1], "-t") == 0)
     {
         methodTester mt;
-
+        mt.test_methods_difference();
+        mt.save_test_methods();
+        mt.steps_test();
+        mt.save_test_steps();
         return 0;
     }
     bool draw_lines = false;
@@ -30,6 +33,7 @@ int main(int argc, char **argv)
     {
         if (strcmp(argv[i], "-l") == 0)
         {
+            draw_dots = false;
             draw_lines = true;
         }
         else if (strcmp(argv[i], "-d") == 0)

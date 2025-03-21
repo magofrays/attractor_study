@@ -1,6 +1,15 @@
 #include "headers/attractor.h"
 
-Attractor::Attractor(std::string method_name) : centroid(0, 0, 0), pos(.5, .5, .5)
+Attractor::Attractor(std::string method_name, bool gui) : centroid(0, 0, 0), pos(.5, .5, .5)
+{
+    this->gui = gui;
+    if (gui)
+    {
+        start_gui();
+    }
+    set_method(method_name);
+}
+void Attractor::start_gui()
 {
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Attractor", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
@@ -9,7 +18,6 @@ Attractor::Attractor(std::string method_name) : centroid(0, 0, 0), pos(.5, .5, .
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
-    set_method(method_name);
 }
 
 void Attractor::set_method(std::string method_name)
@@ -419,7 +427,10 @@ void Attractor::draw_attractor(bool draw_lines, bool draw_dots, bool animation, 
 
 Attractor::~Attractor()
 {
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    if (gui)
+    {
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+    }
 }
