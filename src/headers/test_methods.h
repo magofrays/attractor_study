@@ -24,10 +24,10 @@ struct methodTester
     double step_end = 0.2;
     double step_start = 0.001;
     double step_step = 0.001; // step for step
-    double ideal_step = 0.01;
+    double ideal_step = 0.001;
     int mul_step = (double(1) / step_step);
     // settings for method tester
-    double dipazone_for_count = 0.01;
+    double dipazone_for_count = 0.001;
 
     methodTester();
     int gcd(int a, int b);

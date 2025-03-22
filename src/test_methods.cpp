@@ -65,7 +65,7 @@ void methodTester::test_methods_difference()
         attractor.create_attractor(number_of_points, skip_points);
         attractors.push_back(attractor);
     }
-
+    test_methods["dipazone_for_count"] = dipazone_for_count;
     for (int i = 0; i != attractors.size(); i++)
     {
         for (int j = i + 1; j != attractors.size(); j++)
