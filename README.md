@@ -1,11 +1,13 @@
 # this is beautiful aizawa attractor
 
 ## to build it:
-1. ```mkdir build```
-2. ```cd build```
-3. ```cmake ..```
-4. ```make```
-5. ```./Attractor```
+```
+mkdir build
+cd build
+cmake ..
+make
+./Attractor
+```
 
 ## main flags: 
 1. -a - for animation 
