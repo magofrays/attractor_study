@@ -8,7 +8,10 @@ cmake ..
 make
 ./Attractor
 ```
-
+## controls
+1. WASD - to move it
+2. ↑ ↓ → ← - to rotate it
+3. Q,E / mouse wheel - to zoom in and out
 ## main flags: 
 1. -a - for animation 
 2. -d - to draw Attractor with dots; 
